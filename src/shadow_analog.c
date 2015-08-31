@@ -11,15 +11,19 @@ static  EffectOffset s_effect_offset;
 
 GColor hand_color, shadow_color;
 
+#ifndef PBL_COLOR //for Aplite - defining array that would hold set pixels (for Shadow effect)
+  uint8_t *aplite_visited;
+#endif
 
 static void hands_update_proc(Layer *layer, GContext *ctx) {
   time_t now = time(NULL);
   struct tm *t = localtime(&now);
   
   graphics_context_set_stroke_color(ctx, hand_color);
-  graphics_context_set_stroke_width(ctx, 2);
-  graphics_context_set_antialiased(ctx, false);
-    
+  #ifdef PBL_COLOR
+    graphics_context_set_antialiased(ctx, false);
+  #endif
+  
   GRect bounds = layer_get_bounds(layer);
   GPoint center = grect_center_point(&bounds);
   
@@ -30,15 +34,21 @@ static void hands_update_proc(Layer *layer, GContext *ctx) {
     .x = (int16_t)(sin_lookup(angle) * (int32_t)hand_length / TRIG_MAX_RATIO) + center.x,
     .y = (int16_t)(-cos_lookup(angle) * (int32_t)hand_length / TRIG_MAX_RATIO) + center.y,
   };
+  #ifdef PBL_COLOR
+    graphics_context_set_stroke_width(ctx, 3);
+  #endif
   graphics_draw_line(ctx, hand, center);
   
   //hour hand
-  hand_length = hand_length - 20;
+  hand_length = hand_length - 25;
   angle = (TRIG_MAX_ANGLE * (((t->tm_hour % 12) * 6) + (t->tm_min / 10))) / (12 * 6);
   hand = (GPoint){
     .x = (int16_t)(sin_lookup(angle) * (int32_t)hand_length / TRIG_MAX_RATIO) + center.x,
     .y = (int16_t)(-cos_lookup(angle) * (int32_t)hand_length / TRIG_MAX_RATIO) + center.y,
   };
+  #ifdef PBL_COLOR
+   graphics_context_set_stroke_width(ctx, 5);
+  #endif
   graphics_draw_line(ctx, hand, center);
   
   
@@ -47,6 +57,11 @@ static void hands_update_proc(Layer *layer, GContext *ctx) {
 
 
 static void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
+  
+  #ifndef PBL_COLOR
+     memset(aplite_visited, 0, 168*20);
+  #endif
+    
   //adjusting shadow direction according to minute hand location
   if (tick_time->tm_min > 0 && tick_time->tm_min < 15) {
     s_effect_offset.offset_x = SHADOW_LENGTH;
@@ -77,6 +92,12 @@ static void window_load(Window *window) {
     .orig_color = hand_color,
     .offset_color = shadow_color,
     .option = 1
+      
+    // creating array for "visited" pixels and assigning it to shadow effect parameter
+    #ifndef PBL_COLOR  
+      ,
+      .aplite_visited = aplite_visited
+    #endif 
   };
   
   s_effect_layer = effect_layer_create(bounds);
@@ -92,7 +113,12 @@ static void window_unload(Window *window) {
 
 static void init() {
   
-  hand_color = GColorRed;
+  #ifdef PBL_COLOR
+    hand_color = GColorRed;
+  #else
+    hand_color = GColorWhite;
+    aplite_visited = malloc(168*20);
+  #endif   
   shadow_color = GColorWhite;
   
   
@@ -108,6 +134,9 @@ static void init() {
 }
 
 static void deinit() {
+  #ifndef PBL_COLOR
+    free(aplite_visited);
+  #endif
   tick_timer_service_unsubscribe();
   window_destroy(window);
 }

@@ -12,7 +12,7 @@ typedef struct {
 typedef struct {
   GBitmap*  bitmap_mask; // bitmap used for mask (when masking by bitmap)
   GBitmap*  bitmap_background; // bitmap to show thru mask
-  GColor    mask_color; //color of the mask
+  GColor*   mask_colors; //array with colors of the mask
   GColor    background_color; // color of the background
   char*     text; // text used for mask (when when masking by text)
   GFont     font; // font used for text mask;

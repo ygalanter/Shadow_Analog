@@ -78,10 +78,10 @@ void set_line(BitmapInfo bitmap_info, int y, int x, int y2, int x2, uint8_t draw
           #ifdef PBL_COLOR // for Basalt drawing pixel if it is not of original color or already drawn color
             if (temp_pixel != skip_color && temp_pixel != draw_color) set_pixel(bitmap_info, temp_y, temp_x, draw_color);
           #else
-            if (get_pixel(bitmap_info,  temp_y, temp_x) != 1) { // for Aplite first check if pixel isn't already marked as set in user-defined array
+            if (((visited[temp_y*20 + temp_x/8] >> (temp_x % 8)) & 1) != 1) { // for Aplite first check if pixel isn't already marked as set in user-defined array
               if (temp_pixel != skip_color) set_pixel(bitmap_info, temp_y, temp_x, draw_color); // if pixel isn't of original color - set it
               draw_color = 1 - draw_color; // revers pixel for "lined" effect
-              set_pixel(bitmap_info, temp_y, temp_x, 1); //mark pixel as set
+              visited[temp_y*20 + temp_x/8] ^= (-1 ^ visited[temp_y*20 + temp_x/8]) & (1 << (temp_x % 8)); // in Aplite - set the bit
             }
           #endif
         }
@@ -97,10 +97,10 @@ void set_line(BitmapInfo bitmap_info, int y, int x, int y2, int x2, uint8_t draw
           #ifdef PBL_COLOR // for Basalt drawing pixel if it is not of original color or already drawn color
             if (temp_pixel != skip_color && temp_pixel != draw_color) set_pixel(bitmap_info, temp_y, temp_x, draw_color);
           #else
-            if (get_pixel(bitmap_info,  temp_y, temp_x) != 1) { // for Aplite first check if pixel isn't already marked as set in user-defined array
+            if (((visited[temp_y*20 + temp_x/8] >> (temp_x % 8)) & 1) != 1) { // for Aplite first check if pixel isn't already marked as set in user-defined array
               if (temp_pixel != skip_color) set_pixel(bitmap_info, temp_y, temp_x, draw_color); // if pixel isn't of original color - set it
               draw_color = 1 - draw_color; // revers pixel for "lined" effect
-              set_pixel(bitmap_info, temp_y, temp_x, 1); //mark pixel as set
+              visited[temp_y*20 + temp_x/8] ^= (-1 ^ visited[temp_y*20 + temp_x/8]) & (1 << (temp_x % 8));
             }
           #endif
       }
@@ -118,10 +118,10 @@ void set_line(BitmapInfo bitmap_info, int y, int x, int y2, int x2, uint8_t draw
           #ifdef PBL_COLOR // for Basalt drawing pixel if it is not of original color or already drawn color
             if (temp_pixel != skip_color && temp_pixel != draw_color) set_pixel(bitmap_info, temp_y, temp_x, draw_color);
           #else
-            if (get_pixel(bitmap_info,  temp_y, temp_x) != 1) { // for Aplite first check if pixel isn't already marked as set in user-defined array
+            if (((visited[temp_y*20 + temp_x/8] >> (temp_x % 8)) & 1) != 1) { // for Aplite first check if pixel isn't already marked as set in user-defined array
               if (temp_pixel != skip_color) set_pixel(bitmap_info, temp_y, temp_x, draw_color); // if pixel isn't of original color - set it
               draw_color = 1 - draw_color; // revers pixel for "lined" effect
-              set_pixel(bitmap_info, temp_y, temp_x, 1); //mark pixel as set
+              visited[temp_y*20 + temp_x/8] ^= (-1 ^ visited[temp_y*20 + temp_x/8]) & (1 << (temp_x % 8));
             }
           #endif
       }  
@@ -137,16 +137,28 @@ void set_line(BitmapInfo bitmap_info, int y, int x, int y2, int x2, uint8_t draw
           #ifdef PBL_COLOR // for Basalt drawing pixel if it is not of original color or already drawn color
             if (temp_pixel != skip_color && temp_pixel != draw_color) set_pixel(bitmap_info, temp_y, temp_x, draw_color);
           #else
-            if (get_pixel(bitmap_info,  temp_y, temp_x) != 1) { // for Aplite first check if pixel isn't already marked as set in user-defined array
+            if (((visited[temp_y*20 + temp_x/8] >> (temp_x % 8)) & 1) != 1) { // for Aplite first check if pixel isn't already marked as set in user-defined array
               if (temp_pixel != skip_color) set_pixel(bitmap_info, temp_y, temp_x, draw_color); // if pixel isn't of original color - set it
               draw_color = 1 - draw_color; // revers pixel for "lined" effect
-              set_pixel(bitmap_info, temp_y, temp_x, 1); //mark pixel as set
+              visited[temp_y*20 + temp_x/8] ^= (-1 ^ visited[temp_y*20 + temp_x/8]) & (1 << (temp_x % 8));
             }
           #endif
     }  
 		j-=decInc;
 	}
 
+}
+
+//determine if array of colors contains specific color  
+bool gcolor_contains(GColor *color_array, GColor pixel_color)  {
+  int i=0;
+  while (!gcolor_equal(color_array[i], GColorClear)){
+    if (gcolor_equal(color_array[i], pixel_color)) {
+      return true;
+    }  
+    i++;
+  }
+  return false;
 }
 
 //  ********* Graphics utility functions (probablu should be seaparated into anothe file?) ********* }
@@ -595,7 +607,7 @@ void effect_mask(GContext* ctx, GRect position, void* param) {
   
   //if text mask is used - drawing text
   if (mask->text) {
-     graphics_context_set_text_color(ctx, mask->mask_color);
+     graphics_context_set_text_color(ctx, mask->mask_colors[0]); // for text using only 1st color from array of mask colors
      graphics_draw_text(ctx, mask->text, mask->font, GRect(0, 0, position.size.w, position.size.h), mask->text_overflow, mask->text_align, NULL);
   } else if (mask->bitmap_mask) { // othersise - bitmap mask is used - draw bimap
      graphics_draw_bitmap_in_rect(ctx, mask->bitmap_mask, GRect(0, 0, position.size.w, position.size.h));
@@ -619,9 +631,8 @@ void effect_mask(GContext* ctx, GRect position, void* param) {
   for (int y = 0; y < position.size.h; y++)
      for (int x = 0; x < position.size.w; x++) {
        temp_pixel = (GColor)get_pixel(bitmap_info, y + position.origin.y, x + position.origin.x);
-       if (gcolor_equal(temp_pixel, mask->mask_color)) {
+       if (gcolor_contains(mask->mask_colors, temp_pixel)) { // if array of mask colors matches current screen pixel color:
          // getting pixel from background bitmap (adjusted to pallette by PalColor function because palette of bg bitmap and framebuffer may differ)
-         // *** APP_LOG(APP_LOG_LEVEL_DEBUG, "get_pixel = %d, pal_color = %d", get_pixel(bg_bitmap_info, y + position.origin.y, x + position.origin.x), PalColor(get_pixel(bg_bitmap_info, y + position.origin.y, x + position.origin.x), bg_bitmap_info.bitmap_format, bitmap_info.bitmap_format));
          set_pixel(bitmap_info, y + position.origin.y, x + position.origin.x, PalColor(get_pixel(bg_bitmap_info, y + position.origin.y, x + position.origin.x), bg_bitmap_info.bitmap_format, bitmap_info.bitmap_format));
        } 
   }
