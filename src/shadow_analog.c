@@ -7,7 +7,12 @@ static Layer  *s_hands_layer;
 
 static EffectLayer *s_effect_layer;
 static  EffectOffset s_effect_offset;
-#define SHADOW_LENGTH 120
+
+#ifdef PBL_RECT
+  int SHADOW_LENGTH = 120;
+#else
+  int SHADOW_LENGTH = 30;
+#endif
 
 GColor hand_color, shadow_color;
 
@@ -20,6 +25,7 @@ static void hands_update_proc(Layer *layer, GContext *ctx) {
   struct tm *t = localtime(&now);
   
   graphics_context_set_stroke_color(ctx, hand_color);
+  
   #ifdef PBL_COLOR
     graphics_context_set_antialiased(ctx, false);
   #endif
@@ -28,7 +34,7 @@ static void hands_update_proc(Layer *layer, GContext *ctx) {
   GPoint center = grect_center_point(&bounds);
   
   //minute hand
-  int16_t hand_length = bounds.size.w / 2;
+  int16_t hand_length = bounds.size.w / 2 ;
   int32_t angle = TRIG_MAX_ANGLE * t->tm_min / 60;
   GPoint hand = {
     .x = (int16_t)(sin_lookup(angle) * (int32_t)hand_length / TRIG_MAX_RATIO) + center.x,
@@ -51,6 +57,10 @@ static void hands_update_proc(Layer *layer, GContext *ctx) {
   #endif
   graphics_draw_line(ctx, hand, center);
   
+  #ifndef PBL_RECT
+    graphics_context_set_fill_color(ctx, hand_color);
+    graphics_fill_circle(ctx, center, 7);
+  #endif
   
 }
 
@@ -61,15 +71,16 @@ static void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
   #ifndef PBL_COLOR
      memset(aplite_visited, 0, 168*20);
   #endif
-    
+  
+ 
   //adjusting shadow direction according to minute hand location
-  if (tick_time->tm_min > 0 && tick_time->tm_min < 15) {
+  if (tick_time->tm_min >= 0 && tick_time->tm_min < 15) {
     s_effect_offset.offset_x = SHADOW_LENGTH;
     s_effect_offset.offset_y = SHADOW_LENGTH;
-  } else if (tick_time->tm_min > 15 && tick_time->tm_min < 30) {
+  } else if (tick_time->tm_min >= 15 && tick_time->tm_min < 30) {
     s_effect_offset.offset_x = -SHADOW_LENGTH;
     s_effect_offset.offset_y = SHADOW_LENGTH;
-  } else if (tick_time->tm_min > 30 && tick_time->tm_min < 45) {  
+  } else if (tick_time->tm_min >= 30 && tick_time->tm_min < 45) {  
     s_effect_offset.offset_x = -SHADOW_LENGTH;
     s_effect_offset.offset_y = -SHADOW_LENGTH;  
   } else {

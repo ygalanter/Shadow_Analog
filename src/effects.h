@@ -3,6 +3,7 @@
 
 // used to pass bimap info to get/set pixel accurately  
 typedef struct {
+   GBitmap *bitmap;  // actual bitmap for Chalk raw manipulation
    uint8_t *bitmap_data;
    int bytes_per_row;
    GBitmapFormat bitmap_format;
