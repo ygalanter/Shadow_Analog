@@ -20,6 +20,14 @@ GColor hand_color, shadow_color;
   uint8_t *aplite_visited;
 #endif
 
+#ifndef PBL_SDK_2
+static void app_focus_changed(bool focused) {
+  if (focused) { // on resuming focus - restore background
+    layer_mark_dirty(effect_layer_get_layer(s_effect_layer));
+  }
+}
+#endif
+
 static void hands_update_proc(Layer *layer, GContext *ctx) {
   time_t now = time(NULL);
   struct tm *t = localtime(&now);
@@ -124,6 +132,15 @@ static void window_unload(Window *window) {
 
 static void init() {
   
+  #ifndef PBL_SDK_2
+  // need to catch when app resumes focus after notification, otherwise background won't restore
+  app_focus_service_subscribe_handlers((AppFocusHandlers){
+    .did_focus = app_focus_changed
+  });
+  #endif
+
+  
+  
   #ifdef PBL_COLOR
     hand_color = GColorRed;
   #else
@@ -145,6 +162,13 @@ static void init() {
 }
 
 static void deinit() {
+  
+  
+
+  #ifndef PBL_SDK_2
+    app_focus_service_unsubscribe();
+  #endif
+  
   #ifndef PBL_COLOR
     free(aplite_visited);
   #endif
