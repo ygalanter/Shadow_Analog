@@ -1,6 +1,6 @@
 #include <pebble.h>
 #include "shadow_analog.h"
-#include "effect_layer.h"  
+#include <pebble-effect-layer/pebble-effect-layer.h>
 
 static Window *window;
 static Layer  *s_hands_layer;

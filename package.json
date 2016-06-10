@@ -1,0 +1,38 @@
+{
+    "author": "yuri@galanter.net",
+    "dependencies": {
+        "pebble-effect-layer": "^1.1.1"
+    },
+    "keywords": [],
+    "name": "shadow-analog",
+    "pebble": {
+        "capabilities": [
+            ""
+        ],
+        "displayName": "Shadow Analog",
+        "enableMultiJS": true,
+        "messageKeys": [],
+        "projectType": "native",
+        "resources": {
+            "media": [
+                {
+                    "file": "images/menu_icon.png",
+                    "menuIcon": true,
+                    "name": "MENU",
+                    "type": "bitmap"
+                }
+            ]
+        },
+        "sdkVersion": "3",
+        "targetPlatforms": [
+            "aplite",
+            "basalt",
+            "chalk"
+        ],
+        "uuid": "10155fc1-fdbb-4e84-9468-6ad1ce226bfa",
+        "watchapp": {
+            "watchface": true
+        }
+    },
+    "version": "1.5.0"
+}
